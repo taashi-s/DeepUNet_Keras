@@ -3,19 +3,25 @@ import keras.engine.base_layer as KELayer
 from keras.layers import Conv2D, Activation, Dropout, BatchNormalization, Add, MaxPooling2D
 
 
-class DownBlock(KELayer.Layer):
-    def __init__(self, **kwargs):
-        super(DownBlock, self).__init__(**kwargs)
+class DownBlock():
+    def __init__(self, internal_filter=64, with_batch_norm=False, dropout_rate=None, **kwargs):
+        self.__internal_filter = internal_filter
+        self.__with_batch_norm = with_batch_norm
+        self.__dropout_rate = dropout_rate
 
 
-    def call(self, inputs, **kwargs):
+    def __call__(self, inputs):
         return self.__down_block(inputs)
 
 
     def __down_block(self, input_layer):
         filters = input_layer.get_shape().as_list()[3]
-        layer_1 = self.__conv_block(64, input_layer)
-        layer_2 = self.__conv_block(filters, layer_1)
+        layer_1 = self.__conv_block(self.__internal_filter, input_layer
+                                    , with_batch_norm=self.__with_batch_norm
+                                    , dropout_rate=self.__dropout_rate)
+        layer_2 = self.__conv_block(filters, layer_1
+                                    , with_batch_norm=False
+                                    , dropout_rate=self.__dropout_rate)
         puls = Add()([layer_2, input_layer])
         pool = MaxPooling2D()(puls)
         return [pool, puls]
@@ -30,9 +36,3 @@ class DownBlock(KELayer.Layer):
             layer = Dropout(dropout_rate)(layer)
         layer = Conv2D(filters, kernel_size, strides=strides, padding='same')(layer)
         return layer
-
-
-    def compute_output_shape(self, input_shape):
-        return [ (None, input_shape[1] // 2, input_shape[2] // 2, input_shape[3])
-               , (None, input_shape[1], input_shape[2], input_shape[3])
-               ]
