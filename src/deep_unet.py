@@ -21,7 +21,7 @@ class DeepUNet(object):
         for d in range(depth):
             block_outputs = DownBlock(internal_filter=internal_filter*2
                                       , with_batch_norm=True
-                                      , dropout_rate=0.2
+                                      #, dropout_rate=0.2
                                      )(encode_layer)
             encode_layer = block_outputs[0]
             puls_layers.append(block_outputs[1])
@@ -30,7 +30,7 @@ class DeepUNet(object):
         for puls_layer in reversed(puls_layers):
             decode_layer = UpBlock(internal_filter=internal_filter*2
                                    , with_batch_norm=True
-                                   , dropout_rate=0.5
+                                   #, dropout_rate=0.5
                                   )([decode_layer, puls_layer])
 
         decode_layer = BatchNormalization()(decode_layer)

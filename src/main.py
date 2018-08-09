@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from matplotlib import pyplot
 import keras.callbacks as KC
 import math
@@ -10,9 +11,10 @@ from data_generator import DataGenerator
 from history_checkpoint_callback import HistoryCheckpoint
 
 
-CLASS_NUM = 1
+CLASS_NUM = 3
 DEPTH = 5
-INPUT_IMAGE_SHAPE = (256, 256, 3)
+PADDING = 1
+INPUT_IMAGE_SHAPE = (256 + (PADDING * 2), 256 + (PADDING * 2), 3)
 BATCH_SIZE = 20
 EPOCHS = 1000
 GPU_NUM = 4
@@ -22,7 +24,8 @@ INTERNAL_FILTER = 64
 DIR_MODEL = os.path.join('..', 'model')
 DIR_INPUTS = os.path.join('..', 'inputs')
 DIR_OUTPUTS = os.path.join('..', 'outputs')
-DIR_TEACHERS = os.path.join('..', 'teachers_gray')
+#DIR_TEACHERS = os.path.join('..', 'teachers_gray')
+DIR_TEACHERS = os.path.join('..', 'teachers')
 DIR_PREDICTS = os.path.join('..', 'predict_data')
 
 File_MODEL = 'segmentation_model.hdf5'
@@ -59,7 +62,7 @@ def train(gpu_num=None):
                 ]
 
     print('data generateing ...')
-    train_generator = DataGenerator(DIR_INPUTS, DIR_TEACHERS, INPUT_IMAGE_SHAPE)
+    train_generator = DataGenerator(DIR_INPUTS, DIR_TEACHERS, INPUT_IMAGE_SHAPE, include_padding=(PADDING, PADDING))
     inputs, teachers = train_generator.generate_data()
     print('... generated')
 
@@ -122,7 +125,10 @@ def plotLearningCurve(history):
 
 
 def predict(input_dir, gpu_num=None):
-    (file_names, inputs) = load_images(input_dir, INPUT_IMAGE_SHAPE)
+    h, w, c = INPUT_IMAGE_SHAPE
+    org_h, org_w = h - (PADDING * 2), w - (PADDING * 2)
+    (file_names, inputs) = load_images(input_dir, (org_h, org_w, c))
+    inputs = np.pad(inputs, [(0, 0), (PADDING, PADDING), (PADDING, PADDING), (0, 0)], 'constant', constant_values=0)
 
     network = DeepUNet(INPUT_IMAGE_SHAPE, internal_filter=INTERNAL_FILTER, depth=DEPTH, class_num=CLASS_NUM)
     if isinstance(gpu_num, int):
@@ -138,6 +144,8 @@ def predict(input_dir, gpu_num=None):
     print('... predicted')
 
     print('result saveing ...')
+    preds = preds[:, PADDING:org_h, PADDING:org_w, :]
+
     save_images(DIR_OUTPUTS, preds, file_names)
     print('... finish .')
 

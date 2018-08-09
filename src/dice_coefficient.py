@@ -31,35 +31,24 @@ class DiceLossByClass():
         denominator = KB.sum(y_true) + KB.sum(y_pred)
         if denominator == 0:
             return 1
+        if intersection == 0:
+            return 1 / (denominator + 1)
         return (2.0 * intersection) / denominator
         #return (2.0 * intersection + 1) / (KB.sum(y_true) + KB.sum(y_pred) + 1)
 
 
     def dice_coef_loss(self, y_true, y_pred):
         # (N, h, w, ch)
-        #y_true_res = tf.reshape(y_true, (-1, self.__input_h, self.__input_w, self.__class_num))
-        #y_pred_res = tf.reshape(y_pred, (-1, self.__input_h, self.__input_w, self.__class_num))
-        #y_trues = tf.unstack(y_true_res, axis=3)
-        #y_preds = tf.unstack(y_pred_res, axis=3)
-
-        #losses = []
-        #for y_t, y_p in zip(y_trues, y_preds):
-        #    losses.append((1 - self.dice_coef(y_t, y_p))*2)
-
-        #return tf.reduce_mean(tf.stack(losses))
-        #return tf.reduce_sum(tf.stack(losses))
-        """
-        y_pred_res = tf.reshape(y_pred, (-1, self.__input_h, self.__input_w, 2))
+        y_true_res = tf.reshape(y_true, (-1, self.__input_h, self.__input_w, self.__class_num))
+        y_pred_res = tf.reshape(y_pred, (-1, self.__input_h, self.__input_w, self.__class_num))
+        
+        y_trues = tf.unstack(y_true_res, axis=3)
         y_preds = tf.unstack(y_pred_res, axis=3)
 
-        y_true_res = tf.reshape(y_true, (-1, self.__input_h, self.__input_w, 2))
-        y_trues = tf.unstack(y_true_res, axis=3)
-        print(np.shape(y_pred_res))
-        print(np.shape(y_true_res))
         losses = []
-        for y_t, y_p in zip(y_trues, y_preds):
-            losses.append((1 - self.dice_coef(y_t, y_p)))
+        for ys in zip(y_trues, y_preds):
+            losses.append((1 - self.dice_coef(*ys)))
 
+        #return tf.reduce_mean(tf.stack(losses))
         return tf.reduce_sum(tf.stack(losses))
-        """
-        return 1 - self.dice_coef(y_true, y_pred)
+        #return 1 - self.dice_coef(y_true, y_pred)

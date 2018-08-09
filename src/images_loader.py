@@ -58,6 +58,11 @@ def save_images(dir_name, image_data_list, file_name_list):
         #distImg = distImg.convert('RGB')
         save_path = os.path.join(dir_name, name)
         #distImg.save(save_path, "png")
-        img = (image_data * 255).astype(np.uint8)
-        cv2.imwrite(save_path, img)
-        print('saved : ' , save_path)
+        save_image(image_data, save_path, with_unnormalize=True)
+
+def save_image(image_data, save_path, with_unnormalize=True):
+    if with_unnormalize:
+        image_data *= 255
+    img = image_data.astype(np.uint8)
+    cv2.imwrite(save_path, img)
+    print('saved : ' , save_path)
