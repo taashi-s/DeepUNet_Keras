@@ -24,8 +24,8 @@ class UpBlock():
         if self.__with_batch_norm:
             layer = BatchNormalization()(layer)
         layer = Activation('relu')(layer)
-        if isinstance(self.__dropout_rate, float):
-            layer = Dropout(self.__dropout_rate)(layer)
+        #if isinstance(self.__dropout_rate, float):
+        #    layer = Dropout(self.__dropout_rate)(layer)
         layer = Concatenate()([layer, concat_layer])
         layer = Conv2D(self.__internal_filter, 3, strides=1, padding='same')(layer)
 
