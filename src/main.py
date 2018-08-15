@@ -15,70 +15,38 @@ CLASS_NUM = 3
 DEPTH = 5
 PADDING = 1
 INPUT_IMAGE_SHAPE = (256 + (PADDING * 2), 256 + (PADDING * 2), 3)
-BATCH_SIZE = 20
+BATCH_SIZE = 45
 EPOCHS = 1000
 GPU_NUM = 4
 
 INTERNAL_FILTER = 64 
 
-DIR_MODEL = os.path.join('..', 'model')
-DIR_INPUTS = os.path.join('..', 'inputs')
-DIR_OUTPUTS = os.path.join('..', 'outputs')
-#DIR_TEACHERS = os.path.join('..', 'teachers_gray')
-DIR_TEACHERS = os.path.join('..', 'teachers')
-DIR_PREDICTS = os.path.join('..', 'predict_data')
+DIR_BASE = os.path.join('.', '..')
+DIR_MODEL = os.path.join(DIR_BASE, 'model')
+DIR_TRAIN_INPUTS = os.path.join(DIR_BASE, 'inputs')
+DIR_TRAIN_TEACHERS = os.path.join(DIR_BASE, 'teachers')
+DIR_VALID_INPUTS = os.path.join(DIR_BASE, 'valid_inputs')
+DIR_VALID_TEACHERS = os.path.join(DIR_BASE, 'valid_teachers')
+DIR_OUTPUTS = os.path.join(DIR_BASE, 'outputs')
+DIR_TEST = os.path.join(DIR_BASE, 'predict_data')
+DIR_PREDICTS = os.path.join(DIR_BASE, 'predict_data')
 
 File_MODEL = 'segmentation_model.hdf5'
 
 
-def train(gpu_num=None):
-    #print('input data loading ...', )
-    #(_, inputs) = load_images(DIR_INPUTS, INPUT_IMAGE_SHAPE)
-    #print('... loaded .', )
-    #print('teacher data loading ...', )
-    #(_, teachers) = load_images(DIR_TEACHERS, INPUT_IMAGE_SHAPE)
-    #print('... loaded .', )
-
+def train(gpu_num=None, with_generator=False, load_model=False, show_info=True):
+    print('network creating ... ', end='', flush=True)
     network = DeepUNet(INPUT_IMAGE_SHAPE, internal_filter=INTERNAL_FILTER, depth=DEPTH, class_num=CLASS_NUM)
-    model_filename = os.path.join(DIR_MODEL, File_MODEL)
-    network.plot_model_summary('../model_plot.png')
-    network.show_model_summary()
+    print('... created')
+
+    if show_info:
+        network.plot_model_summary('../model_plot.png')
+        network.show_model_summary()
     if isinstance(gpu_num, int):
         model = network.get_parallel_model(gpu_num, with_comple=True)
     else:
         model = network.get_model(with_comple=True)
 
-    callbacks = [ KC.TensorBoard()
-                , HistoryCheckpoint(filepath='LearningCurve_{history}.png'
-                                    , verbose=1
-                                    , period=10
-                                   )
-                , KC.ModelCheckpoint(filepath=model_filename
-                                     , verbose=1
-                                     , save_weights_only=True
-                                     #, save_best_only=True
-                                     , period=10
-                                    )
-                ]
-
-    print('data generateing ...')
-    train_generator = DataGenerator(DIR_INPUTS, DIR_TEACHERS, INPUT_IMAGE_SHAPE, include_padding=(PADDING, PADDING))
-    inputs, teachers = train_generator.generate_data()
-    print('... generated')
-
-    history = model.fit(inputs, teachers, batch_size=BATCH_SIZE, epochs=EPOCHS
-                        , shuffle=True, verbose=1, callbacks=callbacks)
-    model.save_weights(model_filename)
-    plotLearningCurve(history)
-
-
-def train_with_generator(gpu_num=None):
-    network = DeepUNet(INPUT_IMAGE_SHAPE, internal_filter=INTERNAL_FILTER, depth=DEPTH, class_num=CLASS_NUM)
-    if isinstance(gpu_num, int):
-        model = network.get_parallel_model(gpu_num, with_comple=True)
-    else:
-        model = network.get_model(with_comple=True)
-    model.summary()
     model_filename = os.path.join(DIR_MODEL, File_MODEL)
     callbacks = [ KC.TensorBoard()
                 , HistoryCheckpoint(filepath='LearningCurve_{history}.png'
@@ -93,28 +61,48 @@ def train_with_generator(gpu_num=None):
                                     )
                 ]
 
-    train_generator = DataGenerator(DIR_INPUTS, DIR_TEACHERS, INPUT_IMAGE_SHAPE)
-    train_data_num = train_generator.data_size()
+    if load_model:
+        print('loading weghts ... ', end='', flush=True)
+        model.load_weights(model_filename)
+        print('... loaded') 
 
+    print('data generator creating ... ', end='', flush=True)
+    train_generator = DataGenerator(DIR_TRAIN_INPUTS, DIR_TRAIN_TEACHERS, INPUT_IMAGE_SHAPE
+                                    , include_padding=(PADDING, PADDING))
+    valid_generator = DataGenerator(DIR_VALID_INPUTS, DIR_VALID_TEACHERS, INPUT_IMAGE_SHAPE
+                                    , include_padding=(PADDING, PADDING))
+    print('... created')
 
-    print('fix ...')
-    his = model.fit_generator(train_generator.generator(batch_size=BATCH_SIZE)
-                              , steps_per_epoch=math.ceil(train_data_num / BATCH_SIZE)
-                              , epochs=EPOCHS
-                              , verbose=1
-                              , use_multiprocessing=True
-                              , callbacks=callbacks
-                              #, validation_data=valid_generator
-                              #, validation_steps=math.ceil(valid_data_num / BATCH_SIZE)
-                             )
-    print('model saveing ...')
+    if with_generator:
+        train_data_num = train_generator.data_size()
+        valid_data_num = valid_generator.data_size()
+        his = model.fit_generator(train_generator.generator(batch_size=BATCH_SIZE)
+                                  , steps_per_epoch=math.ceil(train_data_num / BATCH_SIZE)
+                                  , epochs=EPOCHS
+                                  , verbose=1
+                                  , use_multiprocessing=True
+                                  , callbacks=callbacks
+                                  , validation_data=valid_generator.generator(batch_size=BATCH_SIZE)
+                                  , validation_steps=math.ceil(valid_data_num / BATCH_SIZE)
+                                 )
+    else:
+        print('data generateing ... ') #, end='', flush=True)
+        train_inputs, train_teachers = train_generator.generate_data()
+        valid_data = valid_generator.generate_data()
+        print('... generated')
+        history = model.fit(train_inputs, train_teachers, batch_size=BATCH_SIZE, epochs=EPOCHS
+                            , validation_data=valid_data
+                            , shuffle=True, verbose=1, callbacks=callbacks)
+    print('model saveing ... ', end='', flush=True)
     model.save_weights(model_filename)
     print('... saved')
-    plotLearningCurve(his)
+    print('learning_curve saveing ... ', end='', flush=True)
+    save_learning_curve(history)
+    print('... saved')
 
 
-def plotLearningCurve(history):
-    """ saveLearningCurve """
+def save_learning_curve(history):
+    """ save_learning_curve """
     x = range(EPOCHS)
     pyplot.plot(x, history.history['loss'], label="loss")
     pyplot.title("loss")
@@ -159,8 +147,8 @@ if __name__ == '__main__':
     if not(os.path.exists(DIR_OUTPUTS)):
         os.mkdir(DIR_OUTPUTS)
 
-    train(gpu_num=GPU_NUM)
-    #train_with_generator(gpu_num=GPU_NUM)
+    train(gpu_num=GPU_NUM, with_generator=False, load_model=True)
+    #train(gpu_num=GPU_NUM, with_generator=True, load_model=False)
 
     #predict(DIR_INPUTS, gpu_num=GPU_NUM)
     #predict(DIR_PREDICTS, gpu_num=GPU_NUM)
