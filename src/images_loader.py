@@ -56,13 +56,22 @@ def save_images(dir_name, image_data_list, file_name_list):
         #image_data = np.reshape(image_data, (w, h))
         #distImg = Image.fromarray(image_data * 255)
         #distImg = distImg.convert('RGB')
-        save_path = os.path.join(dir_name, name)
-        #distImg.save(save_path, "png")
+        ths = [10, 20, 50, 100, 127, 150, 180, 200, 220, 250]
+        name_base, ext = os.path.splitext(name)
+        save_path = os.path.join(dir_name, name_base + '_orign' + ext)
         save_image(image_data, save_path, with_unnormalize=True)
+        for th in ths:
+            save_path = os.path.join(dir_name, name_base + ('_th%03d' % th) + ext)
+            #distImg.save(save_path, "png")
+            #save_image(image_data, save_path, with_unnormalize=True)
+            save_image(image_data, save_path, with_unnormalize=True, binary_threshold=th)
 
-def save_image(image_data, save_path, with_unnormalize=True):
+def save_image(image_data, save_path, with_unnormalize=True, binary_threshold=None):
     if with_unnormalize:
         image_data *= 255
+    if isinstance(binary_threshold, int):
+        image_data[image_data < binary_threshold] = 0
+        image_data[image_data != 0] = 255
     img = image_data.astype(np.uint8)
     cv2.imwrite(save_path, img)
     print('saved : ' , save_path)
