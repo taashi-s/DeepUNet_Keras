@@ -19,23 +19,25 @@ class DataGenerator():
       h, w, c = image_shape
       h_pad, w_pad = self.__padding
       self.__image_shape = (h - (h_pad * 2), w - (w_pad * 2), c)
-      
-      self.__update_data_names()
+
+      self.__data_names = self.__get_data_names(self.__input_dir, self.__teacher_dir)
 
 
-    def __update_data_names(self):
-        files = glob.glob(os.path.join(self.__input_dir, '*.png'))
-        files += glob.glob(os.path.join(self.__input_dir, '*.jpeg'))
-        files += glob.glob(os.path.join(self.__input_dir, '*.jpg'))
+    def __get_data_names(self, input_dir, teacher_dir):
+        files = glob.glob(os.path.join(input_dir, '*.png'))
+        files += glob.glob(os.path.join(input_dir, '*.jpeg'))
+        files += glob.glob(os.path.join(input_dir, '*.jpg'))
         files.sort()
-        self.__data_names = []
+
+        data_names = []
         for file in files:
-          # TODO : Support other extension
-          name = os.path.basename(file)
-          teacher_path = os.path.join(self.__teacher_dir, name)
-          if not os.path.exists(teacher_path):
-              continue
-          self.__data_names.append(name)
+            # TODO : Support other extension
+            name = os.path.basename(file)
+            teacher_path = os.path.join(teacher_dir, name)
+            if not os.path.exists(teacher_path):
+                continue
+            data_names.append(name)
+        return data_names
 
 
     def data_size(self):
@@ -107,18 +109,16 @@ class DataGenerator():
 
                     yield inputs, teachers
 
+
     def load_data(self, name):
         input_path = os.path.join(self.__input_dir, name)
         teacher_path = os.path.join(self.__teacher_dir, name)
+
         input_img = iml.load_image(input_path, self.__image_shape, with_normalize=True)
-        #teacher_img = iml.load_image(teacher_path, self.__image_shape, with_normalize=True)
+
         teacher_shape = self.__image_shape # (self.__image_shape[0], self.__image_shape[1], 1)
         teacher_img = iml.load_image(teacher_path, teacher_shape, with_normalize=True)
-        #h, w, _ = teacher_shape
-        #teacher_img[0, :, :] = 1
-        #teacher_img[h - 1, :, :] = 1
-        #teacher_img[:, 0, :] = 1
-        #teacher_img[:, w - 1, :] = 1
+
         input_img = self.padding_data(input_img, 0)
         teacher_img = self.padding_data(teacher_img, 1)
         return input_img, teacher_img
