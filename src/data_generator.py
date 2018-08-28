@@ -119,6 +119,8 @@ class DataGenerator():
         teacher_shape = self.__image_shape # (self.__image_shape[0], self.__image_shape[1], 1)
         teacher_img = iml.load_image(teacher_path, teacher_shape, with_normalize=True)
 
+        teacher_img[teacher_img == 0] = 10 / 255
+
         #input_img = self.padding_data(input_img, 0)
         #teacher_img = self.padding_data(teacher_img, 1)
         return input_img, teacher_img
