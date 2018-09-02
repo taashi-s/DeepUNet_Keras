@@ -119,19 +119,11 @@ class DataGenerator():
         teacher_shape = self.__image_shape # (self.__image_shape[0], self.__image_shape[1], 1)
         teacher_img = iml.load_image(teacher_path, teacher_shape, with_normalize=True)
 
-        #teacher_img[teacher_img == 0] = 10 / 255
-
-        h, w, _ = teacher_shape
-        teacher_img[0, :, :] = 1
-        teacher_img[h - 1, :, :] = 1
-        teacher_img[:, 0, :] = 1
-        teacher_img[:, w - 1, :] = 1
-
-        #input_img = self.padding_data(input_img, 0)
-        #teacher_img = self.padding_data(teacher_img, 1)
+        input_img = self.padding_data(input_img, self.__padding, 0)
+        teacher_img = self.padding_data(teacher_img, self.__padding, 1)
         return input_img, teacher_img
 
 
-    def padding_data(self, data, padding_val):
-        h_pad, w_pad = self.__padding
+    def padding_data(self, data, padding, padding_val):
+        h_pad, w_pad = padding
         return np.pad(data, [(h_pad, h_pad), (w_pad, w_pad), (0, 0)], 'constant', constant_values=padding_val)

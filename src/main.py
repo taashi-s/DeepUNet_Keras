@@ -13,7 +13,7 @@ from history_checkpoint_callback import HistoryCheckpoint
 
 CLASS_NUM = 3
 DEPTH = 5
-PADDING = 0
+PADDING = 1
 INPUT_IMAGE_SHAPE = (256 + (PADDING * 2), 256 + (PADDING * 2), 3)
 BATCH_SIZE = 60
 EPOCHS = 1000
@@ -147,8 +147,8 @@ if __name__ == '__main__':
     if not(os.path.exists(DIR_OUTPUTS)):
         os.mkdir(DIR_OUTPUTS)
 
-    #train(gpu_num=GPU_NUM, with_generator=False, load_model=False)
+    train(gpu_num=GPU_NUM, with_generator=False, load_model=False)
     #train(gpu_num=GPU_NUM, with_generator=True, load_model=False)
 
     #predict(DIR_INPUTS, gpu_num=GPU_NUM)
-    predict(DIR_PREDICTS, gpu_num=GPU_NUM)
+    #predict(DIR_PREDICTS, gpu_num=GPU_NUM)
